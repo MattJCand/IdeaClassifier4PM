@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Idea Classifier</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Fraunces:ital,wght@0,300;0,700;1,300&display=swap');
+
+  :root {
+    --bg: #0e0e0e;
+    --surface: #161616;
+    --border: #2a2a2a;
+    --accent: #c8f135;
+    --accent-dim: #8aaa1f;
+    --text: #e8e8e8;
+    --muted: #666;
+    --warn: #f1a135;
+    --danger: #ff6b4a;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 60px 20px;
+  }
+
+  header {
+    text-align: center;
+    margin-bottom: 56px;
+  }
+
+  header h1 {
+    font-family: 'Fraunces', serif;
+    font-weight: 700;
+    font-size: clamp(2.4rem, 5vw, 3.6rem);
+    letter-spacing: -1px;
+    line-height: 1.1;
+  }
+
+  header h1 span { color: var(--accent); font-style: italic; }
+
+  header p {
+    margin-top: 12px;
+    color: var(--muted);
+    font-size: 0.78rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .progress {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 32px;
+  }
+
+  .progress-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--border);
+    transition: background 0.3s;
+  }
+
+  .progress-dot.active { background: var(--accent); }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    padding: 36px;
+    width: 100%;
+    max-width: 620px;
+    margin-bottom: 16px;
+  }
+
+  .step-label {
+    font-size: 0.68rem;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: var(--accent);
+    margin-bottom: 12px;
+  }
+
+  .question {
+    font-family: 'Fraunces', serif;
+    font-weight: 300;
+    font-size: 1.3rem;
+    margin-bottom: 8px;
+    line-height: 1.4;
+  }
+
+  .question-hint {
+    font-size: 0.75rem;
+    color: var(--muted);
+    margin-bottom: 24px;
+    line-height: 1.6;
+  }
+
+  textarea {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    font-size: 0.88rem;
+    padding: 16px;
+    resize: none;
+    min-height: 100px;
+    outline: none;
+    transition: border-color 0.2s;
+    line-height: 1.6;
+  }
+
+  textarea:focus { border-color: var(--accent); }
+  textarea::placeholder { color: var(--muted); }
+
+  .options { display: flex; flex-direction: column; gap: 10px; }
+  .options.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+  .option-btn {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    font-size: 0.8rem;
+    padding: 14px 16px;
+    cursor: pointer;
+    text-align: left;
+    transition: all 0.15s;
+    line-height: 1.4;
+  }
+
+  .option-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+  .option-btn.selected {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #0e0e0e;
+    font-weight: 500;
+  }
+
+  .option-icon {
+    display: block;
+    font-size: 1.1rem;
+    margin-bottom: 6px;
+  }
+
+  .next-btn {
+    margin-top: 24px;
+    background: var(--accent);
+    border: none;
+    border-radius: 2px;
+    color: #0e0e0e;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.82rem;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 14px 28px;
+    cursor: pointer;
+    transition: opacity 0.2s;
+    width: 100%;
+  }
+
+  .next-btn:hover { opacity: 0.85; }
+  .next-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+  /* Result */
+  .result-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    padding: 36px;
+    width: 100%;
+    max-width: 620px;
+    display: none;
+  }
+
+  .result-card.visible { display: block; }
+
+  .result-destination {
+    font-family: 'Fraunces', serif;
+    font-size: 2rem;
+    font-weight: 700;
+    margin-bottom: 8px;
+  }
+
+  .result-tag {
+    display: inline-block;
+    font-size: 0.68rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    padding: 4px 10px;
+    border-radius: 2px;
+    margin-bottom: 20px;
+  }
+
+  .tag-reformuler { background: #2e1a00; color: var(--warn); border: 1px solid var(--warn); }
+  .tag-double { background: #1a2e00; color: var(--accent); border: 1px solid var(--accent); }
+  .tag-solution { background: #001a2e; color: #35b8f1; border: 1px solid #35b8f1; }
+  .tag-initiative { background: #1a002e; color: #b835f1; border: 1px solid #b835f1; }
+  .tag-backlog { background: #2e2e00; color: #f1e035; border: 1px solid #f1e035; }
+
+  .result-why {
+    color: #aaa;
+    font-size: 0.85rem;
+    line-height: 1.7;
+    margin-bottom: 24px;
+  }
+
+  .result-ref {
+    font-size: 0.72rem;
+    color: var(--muted);
+    border-left: 2px solid var(--border);
+    padding-left: 12px;
+    margin-bottom: 24px;
+    line-height: 1.6;
+    font-style: italic;
+  }
+
+  .result-steps {
+    border-top: 1px solid var(--border);
+    padding-top: 20px;
+  }
+
+  .result-steps-label {
+    font-size: 0.68rem;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: var(--muted);
+    margin-bottom: 14px;
+  }
+
+  .step-item {
+    display: flex;
+    gap: 14px;
+    margin-bottom: 12px;
+    font-size: 0.82rem;
+    color: #bbb;
+    line-height: 1.5;
+  }
+
+  .step-num { color: var(--accent); min-width: 20px; }
+
+  .reset-btn {
+    margin-top: 28px;
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    color: var(--muted);
+    font-family: 'DM Mono', monospace;
+    font-size: 0.75rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 12px 20px;
+    cursor: pointer;
+    width: 100%;
+    transition: all 0.15s;
+  }
+
+  .reset-btn:hover { border-color: var(--text); color: var(--text); }
+
+  .hidden { display: none; }
+
+  .fade-in {
+    animation: fadeIn 0.3s ease;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .diamond-visual {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+  }
+
+  .diamond-phase {
+    font-size: 0.7rem;
+    padding: 6px 12px;
+    border-radius: 2px;
+    border: 1px solid var(--border);
+    color: var(--muted);
+  }
+
+  .diamond-phase.active {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: #1e2e00;
+  }
+
+  .diamond-arrow {
+    color: var(--muted);
+    font-size: 0.7rem;
+    display: flex;
+    align-items: center;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Idea<span>Classifier</span></h1>
+  <p>Où va ton idée dans le process produit ?</p>
+</header>
+
+<div class="progress">
+  <div class="progress-dot active" id="dot0"></div>
+  <div class="progress-dot" id="dot1"></div>
+  <div class="progress-dot" id="dot2"></div>
+  <div class="progress-dot" id="dot3"></div>
+  <div class="progress-dot" id="dot4"></div>
+  <div class="progress-dot" id="dot5"></div>
+</div>
+
+<!-- Step 0: L'idée -->
+<div class="card fade-in" id="step0">
+  <div class="step-label">Étape 1 / 5</div>
+  <div class="question">Décris ton idée en une ou deux phrases.</div>
+  <div class="question-hint">Pas besoin d'être précis — une intuition suffit pour commencer.</div>
+  <textarea id="idea" placeholder="Ex: Permettre aux managers de voir en temps réel où en sont leurs techniciens sur le terrain..."></textarea>
+  <button class="next-btn" id="btn0" onclick="goTo(1)" disabled>Continuer →</button>
+</div>
+
+<!-- Step 1: Lien business -->
+<div class="card hidden" id="step1">
+  <div class="step-label">Étape 2 / 5</div>
+  <div class="question">Cette idée est-elle liée à un objectif business identifié ?</div>
+  <div class="question-hint">Teresa Torres : une opportunité sans lien avec un outcome business ne mérite pas d'entrer dans le process.</div>
+  <div class="options">
+    <button class="option-btn" onclick="select(this, 'business', 'clear')">
+      <span class="option-icon">🎯</span>
+      Oui, le lien est clair<br><span style="color:var(--muted);font-size:0.75rem">Je sais quel objectif ça sert</span>
+    </button>
+    <button class="option-btn" onclick="select(this, 'business', 'vague')">
+      <span class="option-icon">🌫️</span>
+      Vaguement<br><span style="color:var(--muted);font-size:0.75rem">J'ai une intuition mais pas de lien explicite</span>
+    </button>
+    <button class="option-btn" onclick="select(this, 'business', 'none')">
+      <span class="option-icon">❓</span>
+      Pas encore<br><span style="color:var(--muted);font-size:0.75rem">Je ne sais pas quel objectif ça sert</span>
+    </button>
+  </div>
+  <button class="next-btn" id="btn1" onclick="goTo(2)" disabled>Continuer →</button>
+</div>
+
+<!-- Step 2: Signaux utilisateurs -->
+<div class="card hidden" id="step2">
+  <div class="step-label">Étape 3 / 5</div>
+  <div class="question">Tu as des signaux utilisateurs qui confirment un problème réel ?</div>
+  <div class="question-hint">Melissa Perri : le problème doit être validé avant d'explorer des solutions. Un signal = retour direct, donnée usage, interview, NPS...</div>
+  <div class="options">
+    <button class="option-btn" onclick="select(this, 'signals', 'strong')">
+      <span class="option-icon">📣</span>
+      Oui, plusieurs signaux clairs<br><span style="color:var(--muted);font-size:0.75rem">Des users ont exprimé ce problème explicitement</span>
+    </button>
+    <button class="option-btn" onclick="select(this, 'signals', 'weak')">
+      <span class="option-icon">📡</span>
+      Quelques signaux faibles<br><span style="color:var(--muted);font-size:0.75rem">Des indices mais pas de confirmation directe</span>
+    </button>
+    <button class="option-btn" onclick="select(this, 'signals', 'none')">
+      <span class="option-icon">🔇</span>
+      Aucun signal pour l'instant<br><span style="color:var(--muted);font-size:0.75rem">C'est une intuition interne</span>
+    </button>
+  </div>
+  <button class="next-btn" id="btn2" onclick="goTo(3)" disabled>Continuer →</button>
+</div>
+
+<!-- Step 3: Compréhension du problème -->
+<div class="card hidden" id="step3">
+  <div class="step-label">Étape 4 / 5</div>
+  <div class="question">Le problème est-il bien compris et documenté ?</div>
+  <div class="question-hint">Teresa Torres : avant de passer aux solutions, l'espace du problème doit être cartographié. Qui est impacté ? Dans quel contexte ? Avec quelle fréquence ?</div>
+  <div class="options">
+    <button class="option-btn" onclick="select(this, 'problem', 'clear')">
+      <span class="option-icon">✅</span>
+      Oui, on comprend bien le problème<br><span style="color:var(--muted);font-size:0.75rem">Contexte, impact, fréquence sont documentés</span>
+    </button>
+    <button class="option-btn" onclick="select(this, 'problem', 'partial')">
+      <span class="option-icon">🔍</span>
+      Partiellement<br><span style="color:var(--muted);font-size:0.75rem">On a des éléments mais des zones floues restent</span>
+    </button>
+    <button class="option-btn" onclick="select(this, 'problem', 'unclear')">
+      <span class="option-icon">🌀</span>
+      Non, c'est encore flou<br><span style="color:var(--muted);font-size:0.75rem">On ne sait pas encore bien ce qui se passe</span>
+    </button>
+  </div>
+  <button class="next-btn" id="btn3" onclick="goTo(4)" disabled>Continuer →</button>
+</div>
+
+<!-- Step 4: Solution + effort -->
+<div class="card hidden" id="step4">
+  <div class="step-label">Étape 5 / 5</div>
+  <div class="question">Tu as une solution claire en tête ? Et quel est l'effort estimé ?</div>
+  <div class="question-hint">Melissa Perri : quand le problème ET la solution sont clairs, on passe en mode exécution. Si c'est un quick win, pas besoin de discovery.</div>
+  <div class="options grid">
+    <button class="option-btn" onclick="select(this, 'solution', 'clear_small')">
+      <span class="option-icon">⚡</span>
+      Solution claire + petit effort<br><span style="color:var(--muted);font-size:0.75rem">Quick win, moins d'1 sprint</span>
+    </button>
+    <button class="option-btn" onclick="select(this, 'solution', 'clear_big')">
+      <span class="option-icon">🏗️</span>
+      Solution claire + gros effort<br><span style="color:var(--muted);font-size:0.75rem">On sait quoi faire, c'est un chantier</span>
+    </button>
+    <button class="option-btn" onclick="select(this, 'solution', 'vague')">
+      <span class="option-icon">💭</span>
+      Solution vague<br><span style="color:var(--muted);font-size:0.75rem">Une direction mais pas de solution précise</span>
+    </button>
+    <button class="option-btn" onclick="select(this, 'solution', 'none')">
+      <span class="option-icon">🔭</span>
+      Aucune solution en tête<br><span style="color:var(--muted);font-size:0.75rem">On ne sait pas encore comment résoudre</span>
+    </button>
+  </div>
+  <button class="next-btn" id="btn4" onclick="showResult()" disabled>Voir ma recommandation →</button>
+</div>
+
+<!-- Result -->
+<div class="result-card" id="result">
+  <div class="step-label">Recommandation</div>
+  <div class="diamond-visual" id="diamond-visual"></div>
+  <div class="result-destination" id="result-destination"></div>
+  <div class="result-tag" id="result-tag"></div>
+  <div class="result-why" id="result-why"></div>
+  <div class="result-ref" id="result-ref"></div>
+  <div class="result-steps">
+    <div class="result-steps-label">Prochaines étapes</div>
+    <div id="result-steps-list"></div>
+  </div>
+  <button class="reset-btn" onclick="reset()">← Recommencer avec une nouvelle idée</button>
+</div>
+
+<script>
+  const answers = {};
+
+  document.getElementById('idea').addEventListener('input', function() {
+    document.getElementById('btn0').disabled = this.value.trim().length < 10;
+  });
+
+  function select(btn, type, value) {
+    const parent = btn.parentElement;
+    parent.querySelectorAll('.option-btn').forEach(b => b.classList.remove('selected'));
+    btn.classList.add('selected');
+    answers[type] = value;
+    const btns = ['btn1','btn2','btn3','btn4'];
+    const types = ['business','signals','problem','solution'];
+    const idx = types.indexOf(type);
+    if (idx >= 0) document.getElementById(btns[idx]).disabled = false;
+  }
+
+  function goTo(step) {
+    document.getElementById('step' + (step - 1)).classList.add('hidden');
+    const next = document.getElementById('step' + step);
+    next.classList.remove('hidden');
+    next.classList.add('fade-in');
+    document.getElementById('dot' + step).classList.add('active');
+  }
+
+  function getResult() {
+    const { business, signals, problem, solution } = answers;
+
+    // Pas de lien business → reformuler
+    if (business === 'none') {
+      return {
+        destination: "Reformuler d'abord",
+        tagClass: "tag-reformuler",
+        tag: "⚠️ Hors process",
+        why: "Cette idée n'est pas encore liée à un objectif business identifié. Sans cet ancrage, elle ne peut pas entrer dans le process produit — elle risque de générer du build sans valeur mesurable.",
+        ref: "Teresa Torres (Continuous Discovery Habits) : \"Une opportunité sans lien avec un outcome business n'a pas sa place dans l'Opportunity Solution Tree.\"",
+        steps: [
+          "Identifie l'objectif business de ton équipe pour ce trimestre",
+          "Reformule l'idée comme un problème utilisateur lié à cet objectif",
+          "Si le lien est introuvable, mets l'idée en parking lot",
+          "Reviens dessus lors du prochain cycle de planification"
+        ],
+        diamond: []
+      };
+    }
+
+    // Aucun signal + problème flou → double discovery
+    if (signals === 'none' && (problem === 'unclear' || problem === 'partial')) {
+      return {
+        destination: "Double Discovery",
+        tagClass: "tag-double",
+        tag: "🔷 Discovery Problème + Solution",
+        why: "Le problème n'est pas encore validé et la solution reste floue. Il faut d'abord explorer l'espace du problème avant de chercher des solutions — c'est le double diamant complet.",
+        ref: "Melissa Perri : \"Les équipes qui sautent à la solution sans valider le problème tombent dans le build trap.\" Torres : \"Commence par cartographier les opportunités avant d'explorer les solutions.\"",
+        steps: [
+          "Phase 1 — Discovery problème : mène 5 interviews exploratoires sur le problème",
+          "Cartographie les opportunités avec un Opportunity Solution Tree",
+          "Valide que le problème mérite d'être résolu (fréquence, impact, alternatives actuelles)",
+          "Phase 2 — Discovery solution : génère et teste plusieurs pistes de solutions",
+          "Prototype et valide avant de passer en développement"
+        ],
+        diamond: ['Discovery Problème', '→', 'Discovery Solution', '→', 'Initiative']
+      };
+    }
+
+    // Signaux faibles ou problème partiel → discovery solution seulement
+    if ((signals === 'weak' || signals === 'strong') && (problem === 'partial' || problem === 'unclear')) {
+      return {
+        destination: "Discovery Solution",
+        tagClass: "tag-solution",
+        tag: "🔵 Discovery Solution uniquement",
+        why: "Le problème est suffisamment compris pour avancer, mais la solution reste à explorer. Tu peux entrer directement dans la phase de discovery solution sans repasser par la discovery problème.",
+        ref: "Teresa Torres : \"Quand l'opportunité est bien définie, l'équipe peut passer directement à l'exploration des solutions dans l'OST.\"",
+        steps: [
+          "Formalise l'opportunité : problème, utilisateurs impactés, contexte",
+          "Génère plusieurs pistes de solutions (pas une seule)",
+          "Prototype la ou les solutions les plus prometteuses",
+          "Teste avec de vrais utilisateurs avant de développer"
+        ],
+        diamond: ['Discovery Solution', '→', 'Initiative']
+      };
+    }
+
+    // Problème clair, solution claire, gros effort → initiative
+    if (problem === 'clear' && (solution === 'clear_big')) {
+      return {
+        destination: "Initiative",
+        tagClass: "tag-initiative",
+        tag: "🟣 Initiative",
+        why: "Le problème est bien compris, la solution est claire. C'est le bon moment pour passer en mode exécution : définir le scope, aligner l'équipe, et planifier le développement.",
+        ref: "Melissa Perri : \"Une initiative naît quand on a suffisamment de clarté sur le problème ET une direction solution validée.\"",
+        steps: [
+          "Rédige un problem statement clair partagé avec l'équipe",
+          "Définis les critères de succès (metrics)",
+          "Découpe en étapes livrables (milestones)",
+          "Planifie les sprints et aligne les parties prenantes"
+        ],
+        diamond: ['Initiative', '→', 'Backlog']
+      };
+    }
+
+    // Quick win → backlog direct
+    if (solution === 'clear_small') {
+      return {
+        destination: "Ticket Backlog",
+        tagClass: "tag-backlog",
+        tag: "🟡 Direct en Backlog",
+        why: "La solution est claire et l'effort est minimal. Pas besoin de passer par une phase de discovery — c'est un quick win à planifier directement dans le backlog.",
+        ref: "Melissa Perri : \"Les quick wins avec une solution évidente et un faible risque n'ont pas besoin de discovery. L'over-process tue la vélocité.\"",
+        steps: [
+          "Rédige le ticket avec contexte, critères d'acceptation et effort estimé",
+          "Priorise-le dans le backlog selon l'impact / effort",
+          "Assigne-le au prochain sprint disponible",
+          "Mesure l'impact après livraison"
+        ],
+        diamond: ['Backlog']
+      };
+    }
+
+    // Problème clair, signaux forts, solution vague → discovery solution
+    if (problem === 'clear' && signals === 'strong' && (solution === 'vague' || solution === 'none')) {
+      return {
+        destination: "Discovery Solution",
+        tagClass: "tag-solution",
+        tag: "🔵 Discovery Solution uniquement",
+        why: "Le problème est bien documenté et validé par les utilisateurs. Il ne reste qu'à trouver la bonne solution — entre directement en discovery solution sans repasser par la case problème.",
+        ref: "Teresa Torres : \"Ne retourne pas en discovery problème si l'opportunité est déjà bien définie. Concentre-toi sur l'exploration des solutions.\"",
+        steps: [
+          "Liste les contraintes et critères de la solution idéale",
+          "Génère au minimum 3 pistes de solutions différentes",
+          "Prototype la plus prometteuse rapidement",
+          "Teste et itère avant de committer en développement"
+        ],
+        diamond: ['Discovery Solution', '→', 'Initiative']
+      };
+    }
+
+    // Fallback : discovery complète
+    return {
+      destination: "Double Discovery",
+      tagClass: "tag-double",
+      tag: "🔷 Discovery Problème + Solution",
+      why: "Il reste trop d'incertitudes pour avancer directement. Le double diamant complet permettra de valider le problème avant d'explorer des solutions.",
+      ref: "Melissa Perri & Teresa Torres : quand le doute persiste, investir dans la discovery est toujours moins coûteux que builder la mauvaise chose.",
+      steps: [
+        "Phase 1 — Discovery problème : valide que le problème est réel et mérite d'être résolu",
+        "Cartographie l'espace des opportunités (Opportunity Solution Tree)",
+        "Phase 2 — Discovery solution : génère et teste plusieurs solutions",
+        "Valide avant de développer"
+      ],
+      diamond: ['Discovery Problème', '→', 'Discovery Solution', '→', 'Initiative']
+    };
+  }
+
+  function showResult() {
+    document.getElementById('step4').classList.add('hidden');
+    document.getElementById('dot5').classList.add('active');
+
+    const rec = getResult();
+
+    // Diamond visual
+    const diamondEl = document.getElementById('diamond-visual');
+    diamondEl.innerHTML = rec.diamond.map(phase => {
+      if (phase === '→') return `<div class="diamond-arrow">→</div>`;
+      return `<div class="diamond-phase active">${phase}</div>`;
+    }).join('');
+
+    document.getElementById('result-destination').textContent = rec.destination;
+    const tagEl = document.getElementById('result-tag');
+    tagEl.textContent = rec.tag;
+    tagEl.className = 'result-tag ' + rec.tagClass;
+    document.getElementById('result-why').textContent = rec.why;
+    document.getElementById('result-ref').textContent = rec.ref;
+
+    const stepsList = document.getElementById('result-steps-list');
+    stepsList.innerHTML = rec.steps.map((s, i) => `
+      <div class="step-item">
+        <span class="step-num">${String(i + 1).padStart(2, '0')}.</span>
+        <span>${s}</span>
+      </div>
+    `).join('');
+
+    const resultCard = document.getElementById('result');
+    resultCard.classList.add('visible', 'fade-in');
+  }
+
+  function reset() {
+    Object.keys(answers).forEach(k => delete answers[k]);
+    document.getElementById('idea').value = '';
+    ['btn0','btn1','btn2','btn3','btn4'].forEach(id => {
+      document.getElementById(id).disabled = true;
+    });
+    ['step1','step2','step3','step4','result'].forEach(id => {
+      const el = document.getElementById(id);
+      el.classList.add('hidden');
+      el.classList.remove('visible');
+    });
+    document.getElementById('step0').classList.remove('hidden');
+    document.querySelectorAll('.option-btn').forEach(b => b.classList.remove('selected'));
+    document.querySelectorAll('.progress-dot').forEach((d, i) => {
+      d.classList.toggle('active', i === 0);
+    });
+  }
+</script>
+</body>
+</html>
