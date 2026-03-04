@@ -52,4 +52,4 @@ Ouvre `index.html` dans un navigateur, ça tourne.
 
 Deuxième outil d'une série pensée pour aider les équipes produit à mieux décider avant de construire.
 
-Le premier outil — [ProtoAdvisor]([../proto-advisor](https://github.com/MattJCand/ProtoAdvisor4PM)) — recommande le bon type de prototype selon l'hypothèse à valider.
+Le premier outil — [ProtoAdvisor]([https://github.com/MattJCand/ProtoAdvisor4PM]) — recommande le bon type de prototype selon l'hypothèse à valider.
