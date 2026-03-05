@@ -4,6 +4,11 @@
 
 ---
 
+![Version](https://img.shields.io/badge/version-1.0-c8602a) ![Licence](https://img.shields.io/badge/licence-MIT-2a7c6f) ![No deps](https://img.shields.io/badge/dépendances-aucune-gold)
+
+
+---
+
 ## Le problème
 
 Toutes les idées ne méritent pas le même traitement.
@@ -53,3 +58,13 @@ Ouvre `index.html` dans un navigateur, ça tourne.
 Deuxième outil d'une série pensée pour aider les équipes produit à mieux décider avant de construire.
 
 Le premier outil — [ProtoAdvisor](https://github.com/MattJCand/ProtoAdvisor4PM) — recommande le bon type de prototype selon l'hypothèse à valider.
+
+
+
+---
+
+## 📄 Licence
+
+MIT
+
+
